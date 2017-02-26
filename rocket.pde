@@ -1,21 +1,22 @@
 SpaceShip spaceShip;
-PImage stars, gameOver;
+//PImage stars, 
+PImage gameOver, gameCompleted;
 Block[] blocks;
 long time;
-boolean gameFinished;
-
+boolean gameFinished, gameWin;
 
 void setup() {
   background(255);
   size(500, 500);
   spaceShip = new SpaceShip();
-  stars = loadImage("stars.jpg");
+  //stars = loadImage("stars.jpg");
   gameOver = loadImage("gameover.jpg");
+  gameCompleted = loadImage("win.jpg");
   /*
     Create blocks parameters are how much (first) and 
    how much rows (second)
    */
-  createBlocks(20, 12);
+  createBlocks(50, 2);
   time = millis();
 }
 
@@ -23,15 +24,24 @@ int i = 0;
 
 void draw() {
   if (!gameFinished) {
-    //drawStars(4);
+    //drawStars();
     background(0);
-    drawBlocks(2000, 20);//2000 is the time for move and 2 the step
+    drawBlocks(2000, 2);//2000 is the time for move and 2 the step
     if (keyPressed) spaceShip.moveShip(5);//5 is the step
     spaceShip.drawRocket();
     spaceShip.moveShots();
-  } else  
-  set(0, 0, gameOver);
+  } else {
+    if (!gameWin)set(0, 0, gameOver);
+    else set(0, 0, gameCompleted);
+  }
 }
+void drawBackground() {
+  PImage img = loadImage("stars.jpg");
+  image(img, 0, 0);
+  loadPixels();
+  updatePixels();
+}
+
 void keyPressed() {
   if (keyCode == UP) 
     spaceShip.shoot(
@@ -47,17 +57,17 @@ void keyPressed() {
   }
 }
 
-void drawStars(int speed) {
-  i = i == height ? 0 : i;
-  set(0, i, stars);
-  set(0, i-height, stars);
-  i += speed;
-}
+/*void drawStars(int speed) {
+ i = i == height ? 0 : i;
+ set(0, i, stars);
+ set(0, i-height, stars);
+ i += speed;
+ }*/
 
 void createBlocks(int size, int rows) {
-  blocks = new Block[(width/size)*rows];
+  blocks = new Block[((width/size)*rows*2)];
   int j = 0;
-  for (int i = 0; i < size*rows; i+=size) 
+  for (int i = -size*rows; i < size*rows; i+=size) 
     for (int k = 0; k < width; k+=size) {
       blocks[j] = new Block(k, i, size);
       j++;
@@ -70,18 +80,22 @@ void drawBlocks(int timeLimit, float step) {
     timeEllapsed = true;
     time = millis();
   } else timeEllapsed = false;
+  int n = 0;
   for (int i = 0; i < blocks.length; i++) {
     if (blocks[i] != null) {
       if (timeEllapsed) {
         blocks[i].y+=step;
         if (blocks[i].y >= spaceShip.spaceShipNoseCoords[1]+spaceShip.y) 
           gameFinished = true;
-      }
+      } 
       blocks[i].drawBlock();
-    }
+    } else n++;
+  }
+  if (n == blocks.length-1) {
+    gameWin = true;
+    gameFinished = true;
   }
 }
-
 
 class SpaceShip {
   final int[][] vertex = {
@@ -163,13 +177,13 @@ class SpaceShip {
           blocks[i] = null;
           shot.speed = 0;
           shot.y2 = y;
-          stopShot(shot);
+          deleteShot(shot);
           return true;
         }
     return false;
   }
 
-  void stopShot(Shot shot) {
+  void deleteShot(Shot shot) {
     Shot aux = startShot;
     while (aux != null) {
       if (aux == shot) {
