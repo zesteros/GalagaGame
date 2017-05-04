@@ -1,9 +1,24 @@
+import processing.video.*;
+
+import ddf.minim.*;
+import ddf.minim.analysis.*;
+import ddf.minim.effects.*;
+import ddf.minim.signals.*;
+import ddf.minim.spi.*;
+import ddf.minim.ugens.*;
+
 SpaceShip spaceShip;
 //PImage stars, 
 PImage gameOver, gameCompleted;
 Block[] blocks;
 long time;
 boolean gameFinished, gameWin;
+Minim minim;
+AudioPlayer player1, player2;
+AudioInput input;
+Movie video;
+boolean videoPlayed;
+
 
 void setup() {
   background(255);
@@ -16,25 +31,37 @@ void setup() {
     Create blocks parameters are how much (first) and 
    how much rows (second)
    */
-  createBlocks(50, 2);
+  createBlocks(20, 5);
   time = millis();
+  minim = new Minim(this);
+  video = new Movie(this, "Galaga.mp4");
+  video.noLoop();
+  video.play();
 }
 
 int i = 0;
 
 void draw() {
-  if (!gameFinished) {
-    //drawStars();
-    background(0);
-    drawBlocks(2000, 2);//2000 is the time for move and 2 the step
-    if (keyPressed) spaceShip.moveShip(5);//5 is the step
-    spaceShip.drawRocket();
-    spaceShip.moveShots();
-  } else {
-    if (!gameWin)set(0, 0, gameOver);
-    else set(0, 0, gameCompleted);
-  }
+  if (videoPlayed) {
+    if (!gameFinished) {
+      //drawStars();
+      background(0);
+      drawBlocks(2000, 2);//2000 is the time for move and 2 the step
+      if (keyPressed) spaceShip.moveShip(5);//5 is the step
+      spaceShip.drawRocket();
+      spaceShip.moveShots();
+    } else {
+      if (!gameWin)set(0, 0, gameOver);
+      else set(0, 0, gameCompleted);
+    }
+  } else 
+    image(video, 0, 0);
+  
 }
+void movieEvent(Movie m) {
+  m.read();
+}
+
 void drawBackground() {
   PImage img = loadImage("stars.jpg");
   image(img, 0, 0);
@@ -43,14 +70,21 @@ void drawBackground() {
 }
 
 void keyPressed() {
-  if (keyCode == UP) 
+  if (!videoPlayed) { 
+    video.stop();
+    videoPlayed = true;
+  }
+  if (keyCode == UP) {
     spaceShip.shoot(
       spaceShip.spaceShipNoseCoords[0]+spaceShip.x, 
       spaceShip.spaceShipNoseCoords[1]+spaceShip.y+10
       );
+    player1 = minim.loadFile("shoot.wav");
+    player1.play();
+  }
   if (keyCode == ENTER) {
     if (gameFinished) {
-      createBlocks(20, 12);
+      createBlocks(20, 5);
       gameFinished = false;
       time = millis();
     }
@@ -173,6 +207,8 @@ class SpaceShip {
     for (int i = 0; i < blocks.length; i++)
       if (blocks[i] != null)
         if (blocks[i].hasBeenTouched(x, y)) {
+          player2 = minim.loadFile("block_deleted.wav");
+          player2.play();
           blocks[i].eraseBlock();
           blocks[i] = null;
           shot.speed = 0;
